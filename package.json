@@ -1,0 +1,14 @@
+{
+  "name": "financial-insights",
+  "version": "1.0.0",
+  "description": "Financial Insights Application",
+  "scripts": {
+    "start": "bash run.sh",
+    "install": "bash install.sh",
+    "build": "cd frontend && npm run build"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+} 
