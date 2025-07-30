@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["python310Full", "nodejs"]
+nixPkgs = ["python310Full", "nodejs", "python310Packages.pip", "python310Packages.setuptools"]
 
 [phases.install]
 cmds = ["python install_deps.py"]

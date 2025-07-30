@@ -23,19 +23,11 @@ def main():
         import pip
         print("✅ pip já está disponível")
     except ImportError:
-        print("📦 Instalando pip...")
-        if not run_command("python -m ensurepip --user", "Instalação do pip"):
-            print("❌ Falha ao instalar pip")
-            sys.exit(1)
-        
-        # Adicionar ~/.local/bin ao PATH
-        home = os.path.expanduser("~")
-        local_bin = os.path.join(home, ".local", "bin")
-        if local_bin not in os.environ.get("PATH", ""):
-            os.environ["PATH"] = f"{local_bin}:{os.environ.get('PATH', '')}"
+        print("❌ pip não está disponível. Verifique a instalação do Python.")
+        sys.exit(1)
     
     # Instalar dependências do backend
-    if not run_command("python -m pip install -r backend/requirements.txt --user", "Instalação das dependências Python"):
+    if not run_command("python -m pip install -r backend/requirements.txt", "Instalação das dependências Python"):
         print("❌ Falha ao instalar dependências Python")
         sys.exit(1)
     
