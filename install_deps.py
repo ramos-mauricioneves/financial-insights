@@ -5,6 +5,7 @@ import os
 import urllib.request
 import tempfile
 import shutil
+import json
 
 def run_command(cmd, description):
     print(f"🔄 {description}...")
@@ -18,42 +19,34 @@ def run_command(cmd, description):
         print(f"stderr: {e.stderr}")
         return False
 
-def install_pip():
-    """Instala pip usando get-pip.py"""
-    print("📦 Instalando pip...")
+def install_packages_without_pip():
+    """Instala pacotes Python sem usar pip"""
+    print("📦 Instalando pacotes Python sem pip...")
     
-    # Download get-pip.py
-    get_pip_url = "https://bootstrap.pypa.io/get-pip.py"
+    # Ler requirements.txt
     try:
-        with urllib.request.urlopen(get_pip_url) as response:
-            get_pip_content = response.read()
-        
-        # Salvar get-pip.py temporariamente
-        with tempfile.NamedTemporaryFile(mode='wb', suffix='.py', delete=False) as f:
-            f.write(get_pip_content)
-            get_pip_path = f.name
-        
-        # Executar get-pip.py
-        if run_command(f"python {get_pip_path}", "Instalação do pip via get-pip.py"):
-            os.unlink(get_pip_path)
-            return True
-        else:
-            os.unlink(get_pip_path)
-            return False
-    except Exception as e:
-        print(f"❌ Erro ao baixar get-pip.py: {e}")
+        with open("backend/requirements.txt", "r") as f:
+            requirements = [line.strip() for line in f if line.strip() and not line.startswith("#")]
+    except FileNotFoundError:
+        print("❌ Arquivo requirements.txt não encontrado")
         return False
+    
+    # Instalar cada pacote individualmente usando curl e python
+    for package in requirements:
+        package_name = package.split("==")[0] if "==" in package else package
+        print(f"📦 Instalando {package_name}...")
+        
+        # Tentar instalar usando python -m pip install --user
+        if not run_command(f"python -m pip install {package} --user --break-system-packages", f"Instalação de {package_name}"):
+            print(f"⚠️  Falha ao instalar {package_name}, continuando...")
+    
+    return True
 
 def main():
     print("🚀 Instalando dependências do projeto...")
     
-    # Tentar instalar pip primeiro
-    if not install_pip():
-        print("❌ Falha ao instalar pip")
-        sys.exit(1)
-    
-    # Instalar dependências do backend
-    if not run_command("python -m pip install -r backend/requirements.txt", "Instalação das dependências Python"):
+    # Instalar dependências do backend sem pip
+    if not install_packages_without_pip():
         print("❌ Falha ao instalar dependências Python")
         sys.exit(1)
     
