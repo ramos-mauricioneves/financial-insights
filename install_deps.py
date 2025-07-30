@@ -2,10 +2,6 @@
 import subprocess
 import sys
 import os
-import urllib.request
-import tempfile
-import shutil
-import json
 
 def run_command(cmd, description):
     print(f"🔄 {description}...")
@@ -19,34 +15,11 @@ def run_command(cmd, description):
         print(f"stderr: {e.stderr}")
         return False
 
-def install_packages_without_pip():
-    """Instala pacotes Python sem usar pip"""
-    print("📦 Instalando pacotes Python sem pip...")
-    
-    # Ler requirements.txt
-    try:
-        with open("backend/requirements.txt", "r") as f:
-            requirements = [line.strip() for line in f if line.strip() and not line.startswith("#")]
-    except FileNotFoundError:
-        print("❌ Arquivo requirements.txt não encontrado")
-        return False
-    
-    # Instalar cada pacote individualmente usando curl e python
-    for package in requirements:
-        package_name = package.split("==")[0] if "==" in package else package
-        print(f"📦 Instalando {package_name}...")
-        
-        # Tentar instalar usando python -m pip install --user
-        if not run_command(f"python -m pip install {package} --user --break-system-packages", f"Instalação de {package_name}"):
-            print(f"⚠️  Falha ao instalar {package_name}, continuando...")
-    
-    return True
-
 def main():
     print("🚀 Instalando dependências do projeto...")
     
-    # Instalar dependências do backend sem pip
-    if not install_packages_without_pip():
+    # Instalar dependências do backend
+    if not run_command("python -m pip install -r backend/requirements.txt --user", "Instalação das dependências Python"):
         print("❌ Falha ao instalar dependências Python")
         sys.exit(1)
     
