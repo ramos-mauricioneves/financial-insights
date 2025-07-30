@@ -9,12 +9,6 @@ if ! command -v python &> /dev/null; then
     exit 1
 fi
 
-# Verificar se pip está disponível
-if ! python -c "import pip" &> /dev/null; then
-    echo "📦 Instalando pip..."
-    python -m ensurepip --upgrade
-fi
-
 # Verificar se Node.js está instalado
 if ! command -v node &> /dev/null; then
     echo "❌ Node.js não encontrado. Instale Node.js 18+ primeiro."
@@ -22,7 +16,6 @@ if ! command -v node &> /dev/null; then
 fi
 
 echo "📦 Instalando dependências do backend..."
-python -m pip install --upgrade pip --user
 python -m pip install -r backend/requirements.txt --user
 
 echo "📦 Instalando dependências do frontend..."
