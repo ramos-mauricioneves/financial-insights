@@ -15,16 +15,45 @@ def run_command(cmd, description):
         print(f"stderr: {e.stderr}")
         return False
 
+def check_pip():
+    """Verifica se pip está disponível de várias formas"""
+    # Tentativa 1: Importar pip
+    try:
+        import pip
+        print("✅ pip disponível via import")
+        return True
+    except ImportError:
+        pass
+    
+    # Tentativa 2: Verificar se o comando pip existe
+    try:
+        result = subprocess.run(["python", "-m", "pip", "--version"], 
+                              capture_output=True, text=True, check=True)
+        print("✅ pip disponível via comando")
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+    
+    # Tentativa 3: Verificar se pip está no PATH
+    try:
+        result = subprocess.run(["pip", "--version"], 
+                              capture_output=True, text=True, check=True)
+        print("✅ pip disponível no PATH")
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        pass
+    
+    return False
+
 def main():
     print("🚀 Instalando dependências do projeto...")
     
     # Verificar se pip está disponível
-    try:
-        import pip
-        print("✅ pip já está disponível")
-    except ImportError:
-        print("❌ pip não está disponível. Verifique a instalação do Python.")
-        sys.exit(1)
+    if not check_pip():
+        print("❌ pip não está disponível. Tentando instalar...")
+        if not run_command("python -m ensurepip --user", "Instalação do pip"):
+            print("❌ Falha ao instalar pip")
+            sys.exit(1)
     
     # Instalar dependências do backend
     if not run_command("python -m pip install -r backend/requirements.txt", "Instalação das dependências Python"):

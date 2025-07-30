@@ -1,8 +1,11 @@
 [phases.setup]
-nixPkgs = ["python310Full", "nodejs", "python310Packages.pip", "python310Packages.setuptools"]
+nixPkgs = ["python310Full", "nodejs", "python310Packages.pip", "python310Packages.setuptools", "python310Packages.wheel"]
 
 [phases.install]
-cmds = ["python install_deps.py"]
+cmds = [
+    "python -m pip install --upgrade pip setuptools wheel",
+    "python install_deps.py"
+]
 
 [phases.build]
 cmds = ["echo 'Build já foi feito no install'"]
