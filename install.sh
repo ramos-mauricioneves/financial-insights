@@ -9,6 +9,13 @@ if ! command -v python &> /dev/null; then
     exit 1
 fi
 
+# Verificar se pip está disponível e instalar se necessário
+if ! python -c "import pip" &> /dev/null; then
+    echo "📦 Instalando pip..."
+    python -m ensurepip --user
+    export PATH="$HOME/.local/bin:$PATH"
+fi
+
 # Verificar se Node.js está instalado
 if ! command -v node &> /dev/null; then
     echo "❌ Node.js não encontrado. Instale Node.js 18+ primeiro."
