@@ -52,4 +52,8 @@ async def spa_fallback(full_path: str, request: Request):
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "service": "financial-insights"}
+    return {"status": "healthy", "service": "financial-insights", "timestamp": "2024-01-01T00:00:00Z"}
+
+@app.get("/")
+async def root():
+    return {"message": "Financial Insights API", "status": "running"}
