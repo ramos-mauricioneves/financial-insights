@@ -15,11 +15,31 @@ def run_command(cmd, description):
         print(f"stderr: {e.stderr}")
         return False
 
+def check_pip():
+    """Verifica se pip está disponível"""
+    try:
+        result = subprocess.run(["python", "-m", "pip", "--version"], 
+                              capture_output=True, text=True, check=True)
+        print("✅ pip está disponível")
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print("❌ pip não está disponível")
+        return False
+
+def install_python_packages():
+    """Instala pacotes Python usando pip se disponível"""
+    if check_pip():
+        return run_command("python -m pip install -r backend/requirements.txt --user", "Instalação das dependências Python")
+    else:
+        print("⚠️  pip não disponível, pulando instalação de dependências Python")
+        print("⚠️  As dependências Python devem ser instaladas manualmente")
+        return True
+
 def main():
     print("🚀 Instalando dependências do projeto...")
     
     # Instalar dependências do backend
-    if not run_command("python -m pip install -r backend/requirements.txt --user", "Instalação das dependências Python"):
+    if not install_python_packages():
         print("❌ Falha ao instalar dependências Python")
         sys.exit(1)
     
