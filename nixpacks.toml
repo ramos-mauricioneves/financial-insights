@@ -1,11 +1,16 @@
 [phases.setup]
-nixPkgs = ["python310Full", "nodejs", "python310Packages.pip", "python310Packages.setuptools", "python310Packages.wheel"]
+nixPkgs = ["python310Full", "nodejs_18", "python310Packages.pip", "python310Packages.setuptools", "python310Packages.wheel"]
 
 [phases.install]
-cmds = ["python install_deps.py"]
+cmds = [
+    "python -m pip install --upgrade pip",
+    "python -m pip install -r backend/requirements.txt",
+    "cd frontend && npm install",
+    "cd frontend && npm run build"
+]
 
 [phases.build]
-cmds = ["echo 'Build já foi feito no install'"]
+cmds = ["echo 'Dependencies installed and frontend built'"]
 
 [start]
-cmd = "bash run.sh" 
+cmd = "cd backend/app && python -m uvicorn main:app --host 0.0.0.0 --port $PORT" 

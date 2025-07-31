@@ -6,10 +6,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
-from slowapi.middleware import SlowAPIMiddleware
 
 from app.routers import organizze, auth, analytics
 from app.core.logging import setup_logging, get_logger, log_api_call
@@ -18,9 +14,6 @@ from app.core.logging import setup_logging, get_logger, log_api_call
 setup_logging()
 logger = get_logger(__name__)
 
-# Rate limiting
-limiter = Limiter(key_func=get_remote_address)
-
 app = FastAPI(
     title="Financial Insights API", 
     version="1.0.0",
@@ -28,11 +21,6 @@ app = FastAPI(
     docs_url="/docs" if os.getenv("ENVIRONMENT") != "production" else None,
     redoc_url="/redoc" if os.getenv("ENVIRONMENT") != "production" else None
 )
-
-# Rate limiting middleware
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-app.add_middleware(SlowAPIMiddleware)
 
 # Security middlewares - Apenas em produção
 if os.getenv("ENVIRONMENT") == "production":
@@ -46,7 +34,7 @@ if os.getenv("ENVIRONMENT") == "production":
 # CORS configurado de forma mais segura
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173").split(","),
+    allow_origins=["*"],  # Permitir todas as origens no Railway
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
@@ -60,14 +48,17 @@ async def add_process_time_header(request: Request, call_next):
     process_time = time.time() - start_time
     
     # Log API calls
-    log_api_call(
-        endpoint=request.url.path,
-        method=request.method,
-        status_code=response.status_code,
-        duration=process_time,
-        user_agent=request.headers.get("user-agent", ""),
-        ip=get_remote_address(request)
-    )
+    try:
+        log_api_call(
+            endpoint=request.url.path,
+            method=request.method,
+            status_code=response.status_code,
+            duration=process_time,
+            user_agent=request.headers.get("user-agent", ""),
+            ip=request.client.host if request.client else "unknown"
+        )
+    except Exception as e:
+        logger.error(f"Error logging API call: {e}")
     
     response.headers["X-Process-Time"] = str(process_time)
     return response
@@ -86,10 +77,9 @@ if os.path.exists(assets_path):
     app.mount("/static", StaticFiles(directory=assets_path), name="static")
     logger.info("Static assets mounted")
 
-# Health check with rate limiting
+# Health check
 @app.get("/health")
-@limiter.limit("60/minute")
-async def health_check(request: Request):
+async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy", 
@@ -101,8 +91,7 @@ async def health_check(request: Request):
 
 # API info
 @app.get("/")
-@limiter.limit("30/minute")
-async def root(request: Request):
+async def root():
     """API root endpoint"""
     return {
         "message": "Financial Insights API", 
@@ -133,7 +122,6 @@ async def startup_event():
     """Application startup"""
     logger.info("Financial Insights API starting up")
     logger.info(f"Environment: {os.getenv('ENVIRONMENT', 'development')}")
-    logger.info(f"CORS Origins: {os.getenv('CORS_ORIGINS', 'localhost origins')}")
 
 # Shutdown event
 @app.on_event("shutdown")

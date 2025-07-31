@@ -1,77 +1,75 @@
 import os
 import json
-import redis
 from typing import Any, Optional
-from datetime import timedelta
+from datetime import datetime, timedelta
 
-# Redis configuration
-REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+# Cache TTL configuration
 CACHE_TTL = int(os.getenv("CACHE_TTL", "3600"))  # 1 hour default
 
 class CacheService:
     def __init__(self):
-        try:
-            self.redis_client = redis.from_url(REDIS_URL, decode_responses=True)
-            # Test connection
-            self.redis_client.ping()
-            self.enabled = True
-        except (redis.ConnectionError, redis.TimeoutError):
-            # Fallback to in-memory cache if Redis is not available
-            self.memory_cache = {}
-            self.enabled = False
-            print("Warning: Redis not available, using in-memory cache")
+        # Use in-memory cache only for Railway deployment
+        self.memory_cache = {}
+        self.cache_timestamps = {}
+        self.enabled = True
+        print("Info: Using in-memory cache (Redis not available)")
+
+    def _is_expired(self, key: str) -> bool:
+        """Check if cache entry is expired"""
+        if key not in self.cache_timestamps:
+            return True
+        
+        timestamp = self.cache_timestamps[key]
+        expiry_time = timestamp + timedelta(seconds=CACHE_TTL)
+        return datetime.now() > expiry_time
 
     def get(self, key: str) -> Optional[Any]:
-        """Obter valor do cache"""
+        """Get value from cache"""
         try:
-            if self.enabled:
-                value = self.redis_client.get(key)
-                if value:
-                    return json.loads(value)
-            else:
-                return self.memory_cache.get(key)
+            if key in self.memory_cache and not self._is_expired(key):
+                return self.memory_cache[key]
+            elif key in self.memory_cache:
+                # Remove expired entry
+                del self.memory_cache[key]
+                del self.cache_timestamps[key]
         except Exception as e:
             print(f"Cache get error: {e}")
         return None
 
     def set(self, key: str, value: Any, ttl: int = CACHE_TTL) -> bool:
-        """Definir valor no cache"""
+        """Set value in cache"""
         try:
-            if self.enabled:
-                serialized = json.dumps(value, default=str)
-                return self.redis_client.setex(key, ttl, serialized)
-            else:
-                self.memory_cache[key] = value
-                return True
+            self.memory_cache[key] = value
+            self.cache_timestamps[key] = datetime.now()
+            return True
         except Exception as e:
             print(f"Cache set error: {e}")
             return False
 
     def delete(self, key: str) -> bool:
-        """Deletar chave do cache"""
+        """Delete key from cache"""
         try:
-            if self.enabled:
-                return bool(self.redis_client.delete(key))
-            else:
-                return self.memory_cache.pop(key, None) is not None
+            if key in self.memory_cache:
+                del self.memory_cache[key]
+            if key in self.cache_timestamps:
+                del self.cache_timestamps[key]
+            return True
         except Exception as e:
             print(f"Cache delete error: {e}")
             return False
 
     def clear(self) -> bool:
-        """Limpar todo o cache"""
+        """Clear all cache"""
         try:
-            if self.enabled:
-                return self.redis_client.flushdb()
-            else:
-                self.memory_cache.clear()
-                return True
+            self.memory_cache.clear()
+            self.cache_timestamps.clear()
+            return True
         except Exception as e:
             print(f"Cache clear error: {e}")
             return False
 
     def get_cache_key(self, prefix: str, *args) -> str:
-        """Gerar chave de cache padronizada"""
+        """Generate standardized cache key"""
         return f"{prefix}:{'_'.join(map(str, args))}"
 
 # Global cache instance

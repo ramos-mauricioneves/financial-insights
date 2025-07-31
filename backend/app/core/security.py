@@ -1,6 +1,6 @@
 import os
 import jwt
-import bcrypt
+import hashlib
 from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import HTTPException, Depends
@@ -14,7 +14,7 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 security = HTTPBearer()
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    """Criar token JWT"""
+    """Create JWT token"""
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -26,19 +26,19 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return encoded_jwt
 
 def verify_token(token: str) -> dict:
-    """Verificar e decodificar token JWT"""
+    """Verify and decode JWT token"""
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
     except jwt.PyJWTError:
         raise HTTPException(
             status_code=401,
-            detail="Token inválido",
+            detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
         )
 
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Dependência para obter usuário atual do token"""
+    """Dependency to get current user from token"""
     token = credentials.credentials
     payload = verify_token(token)
     
@@ -46,16 +46,16 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
     if user_id is None:
         raise HTTPException(
             status_code=401,
-            detail="Token inválido",
+            detail="Invalid token",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
     return {"id": user_id, "organizze_token": payload.get("organizze_token")}
 
 def hash_token(token: str) -> str:
-    """Hash de token para armazenamento seguro"""
-    return bcrypt.hashpw(token.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+    """Hash token for secure storage using SHA256"""
+    return hashlib.sha256(token.encode('utf-8')).hexdigest()
 
 def verify_hashed_token(token: str, hashed: str) -> bool:
-    """Verificar token contra hash"""
-    return bcrypt.checkpw(token.encode('utf-8'), hashed.encode('utf-8'))
+    """Verify token against hash"""
+    return hash_token(token) == hashed
